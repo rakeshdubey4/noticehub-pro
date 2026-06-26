@@ -1,15 +1,18 @@
 FROM serversideup/php:8.4-fpm-nginx
 
-# अस्थायी रूप से root यूजर पर स्विच करें ताकि सिस्टम पैकेजेस और Node.js इंस्टॉल किया जा सके
+# अस्थायी रूप से root यूजर पर स्विच करें
 USER root
 
-# PHP GD एक्सटेंशन, Curl और Node.js (v20) इंस्टॉल करें
-RUN apt-get update && \
-    apt-get install -y php8.4-gd curl && \
-    curl -sL https://nodesource.com | bash - && \
-    apt-get install -y nodejs && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# 1. इन-बिल्ट टूल का उपयोग करके PHP GD एक्सटेंशन इंस्टॉल करें
+RUN install-php-extensions gd
+
+# 2. आधिकारिक NodeSource रिपॉजिटरी से Node.js (v20) इंस्टॉल करें
+RUN apt-get update && apt-get install -y ca-certificates curl gnupg && \
+    mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://nodesource.com | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://nodesource.com nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && apt-get install -y nodejs && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # वापस डिफ़ॉल्ट working directory पर आएं
 WORKDIR /var/www/html
