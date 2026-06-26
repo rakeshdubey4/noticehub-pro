@@ -57,6 +57,11 @@ class NoticeController extends Controller
             'pending'    => Notice::where('filing_status', 'pending')->count(),
             'filed'      => Notice::where('filing_status', 'filed')->count(),
             'not_needed' => Notice::where('filing_status', 'not needed')->count(),
+            'total_quantity' => Notice::sum('quantity'),
+
+            'today_notices' => Notice::whereDate('created_at', today())->count(),
+
+            'today_quantity' => Notice::whereDate('created_at', today())->sum('quantity'),
 
             // NEW TIME-SENSITIVE HIGH ANALYTICS INSIGHTS DATA PIPELINES
             'pending_last_24h' => Notice::where('filing_status', 'pending')
@@ -90,6 +95,7 @@ class NoticeController extends Controller
     {
         $validated = $request->validate([
             'company_name' => 'required|string|max:255',
+            'quantity' => ['required', 'integer', 'min:1'],
             'notice_type' => 'required|string',
             'notice_date' => 'required|date',
             'notice_post_date' => 'required|date',
@@ -108,6 +114,7 @@ class NoticeController extends Controller
     {
         $validated = $request->validate([
             'company_name'     => 'sometimes|string|max:255',
+            'quantity' => ['required', 'integer', 'min:1'],
             'notice_type'      => 'sometimes|string|max:255',
             'notice_date'      => 'sometimes|date_format:Y-m-d',
             'notice_post_date' => 'sometimes|date_format:Y-m-d',
@@ -278,9 +285,9 @@ class NoticeController extends Controller
         //     }
         // }, 'Notices_Report_' . now()->format('Y-m-d') . ".xlsx");
         return Excel::download(
-    new NoticeExport($notices),
-    'Notices_Report.xlsx'
-);
+            new NoticeExport($notices),
+            'Notices_Report.xlsx'
+        );
     }
 
     // 2. PDF Rendering Engine (Generates formatted report grid download)
@@ -327,4 +334,40 @@ class NoticeController extends Controller
 
         return redirect()->back()->with('success', 'Selected records modified successfully.');
     }
+
+// companySuggestions method for dynamic search suggestions
+
+public function companySuggestions(Request $request)
+{
+    $search = trim($request->search);
+
+    return response()->json(
+        Notice::query()
+            ->select('company_name')
+            ->when($search, function ($q) use ($search) {
+                $q->where('company_name', 'like', '%' . $search . '%');
+            })
+            ->distinct()
+            ->orderBy('company_name')
+            ->limit(10)
+            ->pluck('company_name')
+    );
+}
+
+public function noticeTypeSuggestions(Request $request)
+{
+    $search = trim($request->search);
+
+    return response()->json(
+        Notice::query()
+            ->select('notice_type')
+            ->when($search, function ($q) use ($search) {
+                $q->where('notice_type', 'like', '%' . $search . '%');
+            })
+            ->distinct()
+            ->orderBy('notice_type')
+            ->limit(10)
+            ->pluck('notice_type')
+    );
+}
 }
