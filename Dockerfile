@@ -1,29 +1,30 @@
+# स्टेज 1: आधिकारिक Node इमेज से सिर्फ बाइनरी लेने के लिए
+FROM node:20-slim AS node-env
+
+# स्टेज 2: मुख्य PHP इमेज
 FROM serversideup/php:8.4-fpm-nginx
 
 # अस्थायी रूप से root यूजर पर स्विच करें
 USER root
 
-# 1. इन-बिल्ट टूल का उपयोग करके PHP GD एक्सटेंशन इंस्टॉल करें
+# इन-बिल्ट टूल का उपयोग करके PHP GD एक्सटेंशन इंस्टॉल करें
 RUN install-php-extensions gd
 
-# 2. आधिकारिक NodeSource रिपॉजिटरी से Node.js (v20) इंस्टॉल करें
-RUN apt-get update && apt-get install -y ca-certificates curl gnupg && \
-    mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://nodesource.com | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://nodesource.com nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
-    apt-get update && apt-get install -y nodejs && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# स्टेज 1 (Node इमेज) से Node और NPM को सीधे इस PHP इमेज में कॉपी करें
+COPY --from=node-env /usr/local/bin/node /usr/local/bin/
+COPY --from=node-env /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
 
-# वापस डिफ़ॉल्ट working directory पर आएं
+# वर्किंग डायरेक्टरी सेट करें
 WORKDIR /var/www/html
 
 # पूरे प्रोजेक्ट की फाइलों को सही परमिशन के साथ कॉपी करें
 COPY --chown=www-data:www-data . .
 
-# वापस सुरक्षित www-data यूजर पर स्विच करें
+# सुरक्षित www-data यूजर पर वापस जाएं
 USER www-data
 
-# Composer dependencies इंस्टॉल करें, NPM पैकेज डालें और फ्रंटेंड बिल्ड करें
+# कंपोजर और फ्रंटेंड बिल्ड चलाएं
 RUN composer install --no-dev --optimize-autoloader --no-interaction && \
     npm install && \
     npm run build && \
