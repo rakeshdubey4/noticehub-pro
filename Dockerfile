@@ -1,12 +1,12 @@
-FROM serversideup/php:8.2-fpm-nginx
+FROM serversideup/php:8.4-fpm-nginx
 
-# अस्थायी रूप से root यूजर पर स्विच करें ताकि Node.js इंस्टॉल किया जा सके
+# अस्थायी रूप से root यूजर पर स्विच करें ताकि सिस्टम पैकेजेस और Node.js इंस्टॉल किया जा सके
 USER root
 
-# Node.js (v20) और NPM इंस्टॉल करें
+# PHP GD एक्सटेंशन, Curl और Node.js (v20) इंस्टॉल करें
 RUN apt-get update && \
-    apt-get install -y curl && \
-    curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y php8.4-gd curl && \
+    curl -sL https://nodesource.com | bash - && \
     apt-get install -y nodejs && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
