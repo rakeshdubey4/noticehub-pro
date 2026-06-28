@@ -4,7 +4,8 @@ import toast, { Toaster } from 'react-hot-toast';
 // Import Recharts components for beautiful visualization
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import SummaryCards from "@/Components/dashboard/SummaryCards";
-
+import Autocomplete from "@/Components/ui/Autocomplete";
+import useDraft from "@/hooks/useDraft";
 
 export default function Dashboard({ notices = {}, summary = { total: 0, pending: 0, filed: 0, not_needed: 0 }, filters = { search: '', notice_type: '', filing_status: '' }, uniqueNoticeTypes = [], emailHistoryLogs = [], isAdmin = false }) {
 
@@ -27,6 +28,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
     const dropdownRef = useRef(null);
+    const DRAFT_KEY = "notice_draft_v1";
     // Dedicated form tracking hooks state exclusively for Change Password logic module
     const passwordForm = useForm({
         current_password: '',
@@ -50,6 +52,8 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
         notice_post_date: '',
         notify_day: '',
     });
+
+    const { clearDraft } = useDraft(data, setData);
     // Global utility helper function to instantly fire toast animations
     const showToast = (message, type = 'success') => {
         setToast({ visible: true, message, type });
@@ -59,10 +63,16 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
         }, 4000);
     };
 
+    const recentCompanies = JSON.parse(
+    localStorage.getItem("recentCompanies") || "[]"
+);
+
     // Safety registration window context block for fallbacks triggers
     if (typeof window.isEmailLogExpanded === 'undefined') { window.isEmailLogExpanded = false; }
     window.setIsEmailHistoryOpen = setIsEmailLogExpanded;
     window.isEmailHistoryOpen = isEmailLogExpanded;
+
+
 
     // Inertia generic session success validation to toast interceptor listener
     useEffect(() => {
@@ -213,6 +223,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
             put(route('notices.update', currentNoticeId), {
                 onSuccess: () => {
                     setIsModalOpen(false);
+                    clearDraft();
                     reset();
                     showToast("Notice record directory logs modified successfully!", "success");
                 },
@@ -222,6 +233,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
             post(route('notices.store'), {
                 onSuccess: () => {
                     setIsModalOpen(false);
+                    clearDraft();
                     reset();
                     showToast("New corporate notice profile logged inside directory!", "success");
                 },
@@ -958,26 +970,15 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
                             <form onSubmit={handleSubmit} className="space-y-4">
 
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">
-                                        Company Name
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        value={data.company_name}
-                                        onChange={(e) =>
-                                            setData('company_name', e.target.value)
-                                        }
-                                        className="w-full rounded-xl border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                                        placeholder="e.g. Acme Corporation"
-                                        required
-                                    />
-
-                                    {errors.company_name && (
-                                        <p className="text-red-500 text-xs mt-1">
-                                            {errors.company_name}
-                                        </p>
-                                    )}
+                                    <Autocomplete
+    label="Company Name"
+    required
+    placeholder='e.g. Hdfc Bank'
+    value={data.company_name}
+    onChange={(value) => setData("company_name", value)}
+    url={route("autocomplete.company")}
+    error={errors.company_name}
+/>
                                 </div>
                                 <div className="col-span-12 md:col-span-4">
     <label className="block text-sm font-medium mb-2">
@@ -989,7 +990,8 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
         min="1"
         value={data.quantity}
         onChange={(e) => setData("quantity", e.target.value)}
-        className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500"
+        className="w-full rounded-xl border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                        placeholder="e.g. 15" required
     />
 
     <p className="mt-1 text-xs text-gray-500">
@@ -1005,20 +1007,15 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
 </div>
 
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">
-                                        Notice Type
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        value={data.notice_type}
-                                        onChange={(e) =>
-                                            setData('notice_type', e.target.value)
-                                        }
-                                        className="w-full rounded-xl border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                                        placeholder="e.g. Audit Compliance"
-                                        required
-                                    />
+                                   <Autocomplete
+    label="Notice Type"
+    required
+    placeholder='e.g. 25 pss act'
+    value={data.notice_type}
+    onChange={(value) => setData("notice_type", value)}
+    url={route("autocomplete.notice-type")}
+    error={errors.notice_type}
+/>
                                 </div>
 
                                 <div>

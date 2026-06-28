@@ -2,10 +2,12 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
-    "scripts": {
-        "build": "vite build",
-        "dev": "vite"
-    },
+   "scripts": {
+  "dev": "vite",
+  "start": "serve -s dist",
+  "build": "vite build"
+}
+,
     "devDependencies": {
         "@headlessui/react": "^2.0.0",
         "@inertiajs/react": "^2.0.0",

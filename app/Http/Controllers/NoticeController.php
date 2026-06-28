@@ -20,6 +20,10 @@ use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use App\Exports\NoticeExport;
+use App\Services\CompanySuggestionService;
+use App\Http\Requests\StoreNoticeRequest;
+use App\Services\NoticeService;
+use App\Http\Requests\UpdateNoticeRequest;
 
 class NoticeController extends Controller
 {
@@ -91,51 +95,49 @@ class NoticeController extends Controller
     }
 
     // Ajax/Inertia Request se New Notice Insert karna (Admin Only)
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'company_name' => 'required|string|max:255',
-            'quantity' => ['required', 'integer', 'min:1'],
-            'notice_type' => 'required|string',
-            'notice_date' => 'required|date',
-            'notice_post_date' => 'required|date',
-            'notify_day' => 'required|integer|min:0',
-        ]);
+   public function store(
+    StoreNoticeRequest $request,
+    NoticeService $service
+) {
+    $service->store(
+        $request->validated()
+    );
 
-        // Force integer conversion before entry insertion
-        $validated['notify_day'] = (int) $validated['notify_day'];
-
-        Notice::create($validated);
-        return redirect()->back()->with('success', 'Notice created successfully!');
-    }
+    return back()->with(
+        'success',
+        'Notice created successfully.'
+    );
+}
 
     // Notice Update karne ke liye (Admin Only)
-    public function update(Request $request, Notice $notice)
-    {
-        $validated = $request->validate([
-            'company_name'     => 'sometimes|string|max:255',
-            'quantity' => ['required', 'integer', 'min:1'],
-            'notice_type'      => 'sometimes|string|max:255',
-            'notice_date'      => 'sometimes|date_format:Y-m-d',
-            'notice_post_date' => 'sometimes|date_format:Y-m-d',
-            'notify_day'       => 'sometimes|integer|min:0',
-            'filing_status'    => 'sometimes|string|in:pending,filed,not needed'
-        ]);
+    public function update(
+    UpdateNoticeRequest $request,
+    Notice $notice,
+    NoticeService $service
+) {
+    $service->update(
+        $notice,
+        $request->validated()
+    );
 
-        if (isset($validated['notify_day'])) {
-            $validated['notify_day'] = (int) $validated['notify_day'];
-        }
-
-        $notice->update($validated);
-        return redirect()->back()->with('success', 'Notice updated successfully!');
-    }
+    return back()->with(
+        'success',
+        'Notice updated successfully.'
+    );
+}
 
     // Notice Delete karne ke liye (Admin Only)
-    public function destroy(Notice $notice)
-    {
-        $notice->delete();
-        return redirect()->back()->with('success', 'Notice deleted successfully!');
-    }
+   public function destroy(
+    Notice $notice,
+    NoticeService $service
+) {
+    $service->delete($notice);
+
+    return back()->with(
+        'success',
+        'Notice deleted successfully.'
+    );
+}
 
     // 1. Excel Generation Utility (Saves as spreadsheet data array file)
     public function exportExcel(Request $request)
@@ -337,20 +339,12 @@ class NoticeController extends Controller
 
 // companySuggestions method for dynamic search suggestions
 
-public function companySuggestions(Request $request)
+public function companySuggestions(Request $request,CompanySuggestionService $service)
 {
     $search = trim($request->search);
 
     return response()->json(
-        Notice::query()
-            ->select('company_name')
-            ->when($search, function ($q) use ($search) {
-                $q->where('company_name', 'like', '%' . $search . '%');
-            })
-            ->distinct()
-            ->orderBy('company_name')
-            ->limit(10)
-            ->pluck('company_name')
+        $service->suggestions($search)
     );
 }
 
