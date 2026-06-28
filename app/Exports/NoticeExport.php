@@ -47,6 +47,7 @@ class NoticeExport implements
                 'Sl. No.' => $slNo++, // Add row serial sequence number
                 'Company Name' => $notice->company_name ?? null,
                 'Notice Type' => $notice->notice_type ?? null,
+                'Quantity' => $notice->quantity ?? null,
                 'Notice Date' => isset($notice->notice_date) ? \Carbon\Carbon::parse($notice->notice_date)->format('d-m-Y') : null,
                 'Notice Post Date' => isset($notice->notice_post_date) ? \Carbon\Carbon::parse($notice->notice_post_date)->format('d-m-Y') : null,
                 'Notify Days' => isset($notice->notify_day) ? $notice->notify_day." Day(s)" : null,
@@ -62,7 +63,7 @@ class NoticeExport implements
     }
     public function headings(): array
     {
-        return ['Sl. No.', 'Company Profile', 'Notice Category', 'Notice Date', 'Post Date', 'Notify Days Later', 'Filing Status'];
+        return ['Sl. No.', 'Company Profile', 'Notice Category', 'Quantity', 'Notice Date', 'Post Date', 'Notify Days Later', 'Filing Status'];
     }
 
     // CUSTOM HEADINGS STYLING BACKGROUND ENGINE

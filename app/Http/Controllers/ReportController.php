@@ -43,6 +43,7 @@ class ReportController extends Controller
                 'Sl. No.' => $slNo++, // Add row serial sequence number
                 'Company Name' => $notice->company_name,
                 'Notice Type' => $notice->notice_type,
+                'Quantity' => $notice->quantity,
                 'Notice Date' => \Carbon\Carbon::parse($notice->notice_date)->format('d-m-Y'),
                 'Notice Post Date' => \Carbon\Carbon::parse($notice->notice_post_date)->format('d-m-Y'),
                 'Notify Days' => $notice->notify_day . " Day(s)",

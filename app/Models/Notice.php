@@ -9,6 +9,7 @@ class Notice extends Model
      // Saare columns ko fillable array me add karein
     protected $fillable = [
         'company_name',
+         'quantity',
         'notice_type',
         'notice_date',
         'notice_post_date',

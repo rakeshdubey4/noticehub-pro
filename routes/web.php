@@ -24,6 +24,12 @@ Route::get('/dashboard', [NoticeController::class, 'index'])->name('dashboard');
 Route::get('/reports/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
 Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
 Route::put('/user/change-password', [NoticeController::class, 'changePassword'])->name('user.change-password');
+Route::get('/companies/suggestions', [NoticeController::class, 'companySuggestions']);
+Route::get('/autocomplete/company', [NoticeController::class, 'companySuggestions'])
+    ->name('autocomplete.company');
+
+Route::get('/autocomplete/notice-type', [NoticeController::class, 'noticeTypeSuggestions'])
+    ->name('autocomplete.notice-type');
 
 // Protected Admin Routes: Sirf login verified admin users access kar payenge
 

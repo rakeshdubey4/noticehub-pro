@@ -3,7 +3,9 @@ import { useForm, router, Link, usePage } from '@inertiajs/react';
 import toast, { Toaster } from 'react-hot-toast';
 // Import Recharts components for beautiful visualization
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
-
+import SummaryCards from "@/Components/dashboard/SummaryCards";
+import Autocomplete from "@/Components/ui/Autocomplete";
+import useDraft from "@/hooks/useDraft";
 
 export default function Dashboard({ notices = {}, summary = { total: 0, pending: 0, filed: 0, not_needed: 0 }, filters = { search: '', notice_type: '', filing_status: '' }, uniqueNoticeTypes = [], emailHistoryLogs = [], isAdmin = false }) {
 
@@ -26,6 +28,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
     const dropdownRef = useRef(null);
+    const DRAFT_KEY = "notice_draft_v1";
     // Dedicated form tracking hooks state exclusively for Change Password logic module
     const passwordForm = useForm({
         current_password: '',
@@ -43,11 +46,14 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
     // Inertia standard form data submission state management 
     const { data, setData, post, put, reset, errors, processing } = useForm({
         company_name: '',
+        quantity: '',
         notice_type: '',
         notice_date: '',
         notice_post_date: '',
         notify_day: '',
     });
+
+    const { clearDraft } = useDraft(data, setData);
     // Global utility helper function to instantly fire toast animations
     const showToast = (message, type = 'success') => {
         setToast({ visible: true, message, type });
@@ -57,10 +63,16 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
         }, 4000);
     };
 
+    const recentCompanies = JSON.parse(
+    localStorage.getItem("recentCompanies") || "[]"
+);
+
     // Safety registration window context block for fallbacks triggers
     if (typeof window.isEmailLogExpanded === 'undefined') { window.isEmailLogExpanded = false; }
     window.setIsEmailHistoryOpen = setIsEmailLogExpanded;
     window.isEmailHistoryOpen = isEmailLogExpanded;
+
+
 
     // Inertia generic session success validation to toast interceptor listener
     useEffect(() => {
@@ -193,6 +205,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
     const openEditModal = (notice) => {
         setData({
             company_name: notice.company_name || '',
+            quantity: notice.quantity || '',
             notice_type: notice.notice_type || '',
             notice_date: notice.notice_date || '',
             notice_post_date: notice.notice_post_date || '',
@@ -210,6 +223,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
             put(route('notices.update', currentNoticeId), {
                 onSuccess: () => {
                     setIsModalOpen(false);
+                    clearDraft();
                     reset();
                     showToast("Notice record directory logs modified successfully!", "success");
                 },
@@ -219,6 +233,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
             post(route('notices.store'), {
                 onSuccess: () => {
                     setIsModalOpen(false);
+                    clearDraft();
                     reset();
                     showToast("New corporate notice profile logged inside directory!", "success");
                 },
@@ -380,61 +395,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
 
                 {/* LATEST SUMMARY METRIC DASHBOARD CARDS */}
                 {/* LATEST INTERACTIVE GLOW METRIC DASHBOARD CARDS WITH FLOATING DATA INSIGHT POPUPS */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
-                    {/* CARD 1: Total Notices Records */}
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative group transition-all duration-200 hover:shadow-md">
-                        <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Notices</span>
-                        <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 mt-1">{summary.total}</h3>
-
-                        {/* Cute Glassmorphic Floating Popup Overlay */}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-52 bg-slate-900/90 border border-white/10 text-white rounded-xl p-3 text-xs shadow-xl backdrop-blur-md z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-                            <div className="font-bold border-b border-white/10 pb-1 mb-1 text-[11px] uppercase tracking-wider text-blue-400">📊 Database Logs Insight</div>
-                            <p className="text-white/80 leading-relaxed">Directory contains a total of <strong className="text-white font-extrabold">{summary.total}</strong> registered profiles logs tracked across system indexes.</p>
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-900/90" />
-                        </div>
-                    </div>
-
-                    {/* CARD 2: Pending Filings Alerts Timeline (Tracks Last 24H) */}
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative group transition-all duration-200 hover:shadow-md">
-                        <span className="text-xs uppercase tracking-wider font-semibold text-amber-500">Pending Filings</span>
-                        <h3 className="text-2xl md:text-3xl font-extrabold text-amber-600 mt-1">{summary.pending}</h3>
-
-                        {/* Cute Glassmorphic Floating Popup Overlay */}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-52 bg-slate-900/90 border border-white/10 text-white rounded-xl p-3 text-xs shadow-xl backdrop-blur-md z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-                            <div className="font-bold border-b border-white/10 pb-1 mb-1 text-[11px] uppercase tracking-wider text-amber-400">⚠️ Live Urgency Monitor</div>
-                            <p className="text-white/80 leading-relaxed"><strong className="text-amber-400 font-extrabold">+{summary.pending_last_24h ?? 0} new entries</strong> have arrived inside the tracking directory list within the last 24 hours.</p>
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-900/90" />
-                        </div>
-                    </div>
-
-                    {/* CARD 3: Filed Status Complete Milestone Logs (Tracks Monthly Performance) */}
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative group transition-all duration-200 hover:shadow-md">
-                        <span className="text-xs uppercase tracking-wider font-semibold text-emerald-500">Filed Status</span>
-                        <h3 className="text-2xl md:text-3xl font-extrabold text-emerald-600 mt-1">{summary.filed}</h3>
-
-                        {/* Cute Glassmorphic Floating Popup Overlay */}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-52 bg-slate-900/90 border border-white/10 text-white rounded-xl p-3 text-xs shadow-xl backdrop-blur-md z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-                            <div className="font-bold border-b border-white/10 pb-1 mb-1 text-[11px] uppercase tracking-wider text-emerald-400">🏆 Velocity Reports</div>
-                            <p className="text-white/80 leading-relaxed">Compliance velocity check: <strong className="text-emerald-400 font-extrabold">{summary.filed_this_month ?? 0} filings</strong> successfully completed and closed during this calendar month.</p>
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-900/90" />
-                        </div>
-                    </div>
-
-                    {/* CARD 4: Not Needed Operational Segment Records */}
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative group transition-all duration-200 hover:shadow-md">
-                        <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">Not Needed</span>
-                        <h3 className="text-2xl md:text-3xl font-extrabold text-slate-500 mt-1">{summary.not_needed ?? 0}</h3>
-
-                        {/* Cute Glassmorphic Floating Popup Overlay */}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-52 bg-slate-900/90 border border-white/10 text-white rounded-xl p-3 text-xs shadow-xl backdrop-blur-md z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-                            <div className="font-bold border-b border-white/10 pb-1 mb-1 text-[11px] uppercase tracking-wider text-slate-400">💤 Maintenance Exclusions</div>
-                            <p className="text-white/80 leading-relaxed">Contains records categorized as exempt from active automation alert triggers loops calculations rules.</p>
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-900/90" />
-                        </div>
-                    </div>
-
-                </div>
+               <SummaryCards summary={summary} />
 
                 {/* ADVANCED RECHARTS CORPORATE ANALYTICS CHART CONSOLE */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
@@ -776,7 +737,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
                         {/* ULTRA-RESPONSIVE MODERN GRID COMPONENT CONTAINER */}
 
                         {/* DESKTOP ENGINE GRID GRID HEADER (Dynamic columns based on role) (Visible only on medium screens and up) */}
-                        <div className={`hidden md:grid bg-slate-50/70 border-b border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-wider p-4 ${isAdmin ? 'md:grid-cols-9' : 'md:grid-cols-7'
+                        <div className={`hidden md:grid bg-slate-50/70 border-b border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-wider p-4 ${isAdmin ? 'md:grid-cols-10' : 'md:grid-cols-8'
                             }`}
                         >
                             {isAdmin && (
@@ -794,6 +755,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
                             <div className="w-12">Sl. No.</div> {/* New Serial Number Column */}
                             <div>Company Profile</div>
                             <div>Notice Category</div>
+                            <div>Quantity</div>
                             <div>Notice Date</div>
                             <div>Notice Post Date</div>
                             <div>Alert Trigger</div>
@@ -819,7 +781,7 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
                                     return (
                                         <div
                                             key={notice.id}
-                                            className={`grid grid-cols-1 items-center gap-2 md:gap-0 p-4 pl-5 transition duration-150 ${getRowBgClass(notice)} ${isAdmin ? 'md:grid-cols-9' : 'md:grid-cols-7'
+                                            className={`grid grid-cols-1 items-center gap-2 md:gap-0 p-4 pl-5 transition duration-150 ${getRowBgClass(notice)} ${isAdmin ? 'md:grid-cols-10' : 'md:grid-cols-8'
                                                 }`}
                                         >
                                             {isAdmin && (
@@ -851,6 +813,17 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
                                                     </span>
                                                 </span>
                                             </div>
+
+  {/* quantity ke liye */}
+   <div className="flex justify-between md:block">
+                                                <span className="md:hidden text-xs font-bold uppercase text-slate-400">Quantity:</span>
+                                                <span>
+                                                    <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-md font-medium inline-block">
+                                                        {notice.quantity}
+                                                    </span>
+                                                </span>
+                                            </div>
+
 
                                             {/* COLUMN 3: Notice Date */}
                                             <div className="flex justify-between md:block">
@@ -997,43 +970,52 @@ export default function Dashboard({ notices = {}, summary = { total: 0, pending:
                             <form onSubmit={handleSubmit} className="space-y-4">
 
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">
-                                        Company Name
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        value={data.company_name}
-                                        onChange={(e) =>
-                                            setData('company_name', e.target.value)
-                                        }
-                                        className="w-full rounded-xl border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                                        placeholder="e.g. Acme Corporation"
-                                        required
-                                    />
-
-                                    {errors.company_name && (
-                                        <p className="text-red-500 text-xs mt-1">
-                                            {errors.company_name}
-                                        </p>
-                                    )}
+                                    <Autocomplete
+    label="Company Name"
+    required
+    placeholder='e.g. Hdfc Bank'
+    value={data.company_name}
+    onChange={(value) => setData("company_name", value)}
+    url={route("autocomplete.company")}
+    error={errors.company_name}
+/>
                                 </div>
+                                <div className="col-span-12 md:col-span-4">
+    <label className="block text-sm font-medium mb-2">
+        Quantity <span className="text-red-500">*</span>
+    </label>
+
+    <input
+        type="number"
+        min="1"
+        value={data.quantity}
+        onChange={(e) => setData("quantity", e.target.value)}
+        className="w-full rounded-xl border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                        placeholder="e.g. 15" required
+    />
+
+    <p className="mt-1 text-xs text-gray-500">
+        Example: Agar HDFC se ek hi baar me 25 notices aaye hain,
+        to yahan 25 enter karein.
+    </p>
+
+    {errors.quantity && (
+        <p className="mt-1 text-sm text-red-600">
+            {errors.quantity}
+        </p>
+    )}
+</div>
 
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">
-                                        Notice Type
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        value={data.notice_type}
-                                        onChange={(e) =>
-                                            setData('notice_type', e.target.value)
-                                        }
-                                        className="w-full rounded-xl border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                                        placeholder="e.g. Audit Compliance"
-                                        required
-                                    />
+                                   <Autocomplete
+    label="Notice Type"
+    required
+    placeholder='e.g. 25 pss act'
+    value={data.notice_type}
+    onChange={(value) => setData("notice_type", value)}
+    url={route("autocomplete.notice-type")}
+    error={errors.notice_type}
+/>
                                 </div>
 
                                 <div>
